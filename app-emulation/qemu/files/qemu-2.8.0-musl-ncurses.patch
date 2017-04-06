@@ -1,0 +1,12 @@
+diff --git configure configure
+index 1c9655e..9f83176 100755
+--- configure
++++ configure
+@@ -682,6 +682,7 @@ Haiku)
+   vhost_net="yes"
+   vhost_scsi="yes"
+   vhost_vsock="yes"
++  QEMU_CFLAGS="-D_XOPEN_SOURCE=500 $QEMU_CFLAGS"
+   QEMU_INCLUDES="-I\$(SRC_PATH)/linux-headers -I$(pwd)/linux-headers $QEMU_INCLUDES"
+ ;;
+ esac
