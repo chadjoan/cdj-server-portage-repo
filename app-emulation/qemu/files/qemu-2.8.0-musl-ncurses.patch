@@ -1,7 +1,7 @@
-diff --git configure configure
+diff --git a/configure b/configure
 index 1c9655e..9f83176 100755
---- configure
-+++ configure
+--- a/configure
++++ b/configure
 @@ -682,6 +682,7 @@ Haiku)
    vhost_net="yes"
    vhost_scsi="yes"

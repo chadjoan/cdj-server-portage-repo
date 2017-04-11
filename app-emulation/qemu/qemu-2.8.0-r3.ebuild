@@ -100,7 +100,10 @@ SOFTMMU_LIB_DEPEND="${COMMON_LIB_DEPEND}
 	iscsi? ( net-libs/libiscsi )
 	jpeg? ( virtual/jpeg:0=[static-libs(+)] )
 	lzo? ( dev-libs/lzo:2[static-libs(+)] )
-	ncurses? ( sys-libs/ncurses:0=[static-libs(+)] )
+	ncurses? (
+		sys-libs/ncurses:0=[unicode]
+		sys-libs/ncurses:0=[static-libs(+)]
+	)
 	nfs? ( >=net-fs/libnfs-1.9.3[static-libs(+)] )
 	numa? ( sys-process/numactl[static-libs(+)] )
 	opengl? (
@@ -334,13 +337,31 @@ src_prepare() {
 	epatch "${FILESDIR}"/${PN}-2.8.0-F_SHLCK-and-F_EXLCK.patch
 	epatch "${FILESDIR}"/${PN}-2.0.0-linux-user-signal.c-define-__SIGRTMIN-MAX-for-non-GN.patch
 	epatch "${FILESDIR}"/${PN}-2.2.0-_sigev_un.patch
+	epatch "${FILESDIR}"/${PN}-2.8.0-musl-ncurses.patch
 
 	epatch "${FILESDIR}"/${PN}-2.5.0-cflags.patch
 	epatch "${FILESDIR}"/${PN}-2.5.0-sysmacros.patch
 	epatch "${FILESDIR}"/${PN}-2.7.0-CVE-2016-8669-1.patch #597108
-	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2016-9908.patch #601826
-	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2016-9912.patch #602630
-	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2016-10028.patch #603444
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2016-9908.patch   #601826
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2016-9912.patch   #602630
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2016-10028.patch  #603444
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2016-10155.patch  #606720
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2017-2615.patch   #608034
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2017-2630.patch   #609396
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2017-5525-1.patch #606264
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2017-5525-2.patch
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2017-5552.patch   #606722
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2017-5578.patch   #607000
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2017-5579.patch   #607100
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2017-5667.patch   #607766
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2017-5856.patch   #608036
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2017-5857.patch   #608038
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2017-5898.patch   #608520
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2017-5931.patch   #608728
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2017-5973.patch   #609334
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2017-5987.patch   #609398
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2017-6058.patch   #609638
+	epatch "${FILESDIR}"/${PN}-2.8.0-CVE-2017-2620.patch   #609206
 
 	# Fix ld and objcopy being called directly
 	tc-export AR LD OBJCOPY
@@ -586,7 +607,7 @@ src_install() {
 		[[ -e check-report.html ]] && dohtml check-report.html
 
 		if use kernel_linux; then
-			udev_dorules "${FILESDIR}"/65-kvm.rules
+			udev_newrules "${FILESDIR}"/65-kvm.rules-r1 65-kvm.rules
 		fi
 
 		if use python; then
