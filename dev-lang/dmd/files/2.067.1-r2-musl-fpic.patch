@@ -1,0 +1,56 @@
+commit 77097e81688c01096b0e80f2a4f9f9a1c2db49e5
+Author: Chad Joan <chadjoan@gmail.com>
+Date:   Thu Apr 13 01:11:01 2017 -0400
+
+    Hopefully this will prevent dmd from emitting broken object
+    files on hardened musl systems (need the -fPIC flag).
+
+diff --git dmd2/linux/bin32/dmd.conf dmd2/linux/bin32/dmd.conf
+index 7f35963..15f03e7 100644
+--- dmd2/linux/bin32/dmd.conf
++++ dmd2/linux/bin32/dmd.conf
+@@ -1,5 +1,5 @@
+ [Environment32]
+-DFLAGS=-I%@P%/../../src/phobos -I%@P%/../../src/druntime/import -L-L%@P%/../lib32 -L--export-dynamic
++DFLAGS=-I%@P%/../../src/phobos -I%@P%/../../src/druntime/import -L-L%@P%/../lib32 -L--export-dynamic -fPIC
+ 
+ [Environment64]
+-DFLAGS=-I%@P%/../../src/phobos -I%@P%/../../src/druntime/import -L-L%@P%/../lib64 -L--export-dynamic
++DFLAGS=-I%@P%/../../src/phobos -I%@P%/../../src/druntime/import -L-L%@P%/../lib64 -L--export-dynamic -fPIC
+diff --git dmd2/linux/bin64/dmd.conf dmd2/linux/bin64/dmd.conf
+index 7f35963..15f03e7 100644
+--- dmd2/linux/bin64/dmd.conf
++++ dmd2/linux/bin64/dmd.conf
+@@ -1,5 +1,5 @@
+ [Environment32]
+-DFLAGS=-I%@P%/../../src/phobos -I%@P%/../../src/druntime/import -L-L%@P%/../lib32 -L--export-dynamic
++DFLAGS=-I%@P%/../../src/phobos -I%@P%/../../src/druntime/import -L-L%@P%/../lib32 -L--export-dynamic -fPIC
+ 
+ [Environment64]
+-DFLAGS=-I%@P%/../../src/phobos -I%@P%/../../src/druntime/import -L-L%@P%/../lib64 -L--export-dynamic
++DFLAGS=-I%@P%/../../src/phobos -I%@P%/../../src/druntime/import -L-L%@P%/../lib64 -L--export-dynamic -fPIC
+diff --git dmd2/src/dmd/posix.mak dmd2/src/dmd/posix.mak
+index e022784..cf13197 100644
+--- dmd2/src/dmd/posix.mak
++++ dmd2/src/dmd/posix.mak
+@@ -99,6 +99,7 @@ MMD=-MMD -MF $(basename $@).deps
+ CFLAGS := $(WARNINGS) \
+ 	-fno-exceptions -fno-rtti \
+ 	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 -DDMDV2=1 \
++	-fPIE -pie -fstack-protector-all -fstack-check=specific \
+ 
+ ifneq (,$(DEBUG))
+ ENABLE_DEBUG := 1
+@@ -284,10 +285,10 @@ clean:
+ 
+ define DEFAULT_DMD_CONF
+ [Environment32]
+-DFLAGS=-I%@P%/../../druntime/import -I%@P%/../../phobos -L-L%@P%/../../phobos/generated/$(OS)/release/32$(if $(filter $(OS),osx),, -L--export-dynamic)
++DFLAGS=-I%@P%/../../druntime/import -I%@P%/../../phobos -L-L%@P%/../../phobos/generated/$(OS)/release/32$(if $(filter $(OS),osx),, -L--export-dynamic) -fPIC
+ 
+ [Environment64]
+-DFLAGS=-I%@P%/../../druntime/import -I%@P%/../../phobos -L-L%@P%/../../phobos/generated/$(OS)/release/64$(if $(filter $(OS),osx),, -L--export-dynamic)
++DFLAGS=-I%@P%/../../druntime/import -I%@P%/../../phobos -L-L%@P%/../../phobos/generated/$(OS)/release/64$(if $(filter $(OS),osx),, -L--export-dynamic) -fPIC
+ endef
+ 
+ export DEFAULT_DMD_CONF

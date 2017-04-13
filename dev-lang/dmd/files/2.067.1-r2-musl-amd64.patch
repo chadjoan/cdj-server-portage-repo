@@ -1,0 +1,136 @@
+commit 1bff9328c7a469b21491857f29ee10ae18a435a9
+Author: Chad Joan <chadjoan@gmail.com>
+Date:   Wed Apr 12 22:57:08 2017 -0400
+
+    Fix build break on musl libc systems.
+
+diff --git dmd2/src/dmd/backend/cdef.h dmd2/src/dmd/backend/cdef.h
+index 2dc4657..b1bb64b 100644
+--- dmd2/src/dmd/backend/cdef.h
++++ dmd2/src/dmd/backend/cdef.h
+@@ -602,7 +602,7 @@ typedef int bool;
+ #define _far
+ #define __far
+ #define __cs
+-#define __ss
++//#define __ss
+ #endif
+ 
+ #if _WINDLL
+diff --git dmd2/src/dmd/backend/cdeflnx.h dmd2/src/dmd/backend/cdeflnx.h
+index ad56180..2df1b9e 100644
+--- dmd2/src/dmd/backend/cdeflnx.h
++++ dmd2/src/dmd/backend/cdeflnx.h
+@@ -29,7 +29,7 @@
+ #define __pascal
+ #define __far
+ #define  _far
+-#define __ss
++//#define __ss
+ #define __cs
+ 
+ #if SCPP
+diff --git dmd2/src/dmd/root/port.c dmd2/src/dmd/root/port.c
+index e62082c..8ee374c 100644
+--- dmd2/src/dmd/root/port.c
++++ dmd2/src/dmd/root/port.c
+@@ -418,7 +418,7 @@ PortInitializer::PortInitializer()
+     } nan = {{ 0, 0x7FF80000 }};
+ 
+     Port::nan = nan.d;
+-    assert(!signbit(Port::nan));
++    assert(!std::signbit(Port::nan));
+ 
+     union
+     {   unsigned int ui[4];
+@@ -426,7 +426,7 @@ PortInitializer::PortInitializer()
+     } ldbl_nan = {{ 0, 0xC0000000, 0x7FFF, 0}};
+ 
+     Port::ldbl_nan = ldbl_nan.ld;
+-    assert(!signbit(Port::ldbl_nan));
++    assert(!std::signbit(Port::ldbl_nan));
+ 
+     union
+     {   unsigned int ui[4];
+@@ -583,8 +583,9 @@ longdouble Port::strtold(const char *p, char **endp)
+ 
+ #include <math.h>
+ #if __linux__
+-#include <bits/nan.h>
+-#include <bits/mathdef.h>
++//#include <bits/nan.h>
++//#include <bits/mathdef.h>
++#include <cmath>
+ #endif
+ #if __FreeBSD__ && __i386__
+ #include <ieeefp.h>
+@@ -635,7 +636,7 @@ PortInitializer::PortInitializer()
+     } nan = {{ 0, 0x7FF80000 }};
+ 
+     Port::nan = nan.d;
+-    assert(!signbit(Port::nan));
++    assert(!std::signbit(Port::nan));
+ 
+     union
+     {   unsigned int ui[4];
+@@ -643,7 +644,7 @@ PortInitializer::PortInitializer()
+     } ldbl_nan = {{ 0, 0xC0000000, 0x7FFF, 0}};
+ 
+     Port::ldbl_nan = ldbl_nan.ld;
+-    assert(!signbit(Port::ldbl_nan));
++    assert(!std::signbit(Port::ldbl_nan));
+ 
+     union
+     {   unsigned int ui[4];
+@@ -674,7 +675,7 @@ int Port::isNan(double r)
+     return isnan(r);
+ #else
+     #undef isnan
+-    return ::isnan(r);
++    return std::isnan(r);
+ #endif
+ }
+ 
+@@ -690,7 +691,7 @@ int Port::isNan(longdouble r)
+     return isnan(r);
+ #else
+     #undef isnan
+-    return ::isnan(r);
++    return std::isnan(r);
+ #endif
+ }
+ 
+@@ -718,13 +719,13 @@ int Port::isInfinity(double r)
+     return isinf(r);
+ #else
+     #undef isinf
+-    return ::isinf(r);
++    return std::isinf(r);
+ #endif
+ }
+ 
+ longdouble Port::sqrt(longdouble x)
+ {
+-    return ::sqrtl(x);
++    return sqrtl(x);
+ }
+ 
+ longdouble Port::fmodl(longdouble x, longdouble y)
+@@ -889,7 +890,7 @@ PortInitializer::PortInitializer()
+     } nan = {{ 0, 0x7FF80000 }};
+ 
+     Port::nan = nan.d;
+-    assert(!signbit(Port::nan));
++    assert(!std::signbit(Port::nan));
+ 
+     union
+     {   unsigned int ui[4];
+@@ -897,7 +898,7 @@ PortInitializer::PortInitializer()
+     } ldbl_nan = {{ 0, 0xC0000000, 0x7FFF, 0}};
+ 
+     Port::ldbl_nan = ldbl_nan.ld;
+-    assert(!signbit(Port::ldbl_nan));
++    assert(!std::signbit(Port::ldbl_nan));
+ 
+     union
+     {   unsigned int ui[4];
