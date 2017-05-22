@@ -3,6 +3,8 @@
 
 EAPI="5"
 
+EPREFIX="/usr/local/share/dcompilers/gdc"
+
 EGIT_REPO_URI="git://github.com/D-Programming-GDC/GDC.git"
 EGIT_COMMIT="v2.068.2_gcc4.9"
 EGIT_SOURCEDIR="${WORKDIR}/dev"
