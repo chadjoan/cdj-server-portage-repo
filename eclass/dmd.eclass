@@ -25,7 +25,7 @@ inherit multilib-build versionator
 LICENSE="DMD"
 RESTRICT="mirror"
 
-IUSE="doc examples static-libs tools"
+IUSE="debug_symbols doc examples libbacktrace musl static-libs tools"
 SLOT="$(get_version_component_range 1-2)"
 MAJOR="$(get_major_version)"
 MINOR="$((10#$(get_version_component_range 2)))"
@@ -76,6 +76,8 @@ COMMON_DEPEND="
 DEPEND="
 	${COMMON_DEPEND}
 	app-arch/unzip
+	musl? ( dev-lang/dmd[libbacktrace] )
+	libbacktrace? ( sys-libs/libbacktrace )
 	"
 RDEPEND="
 	${COMMON_DEPEND}
@@ -126,6 +128,10 @@ dmd_src_compile() {
 		PIC="PIC=1"
 	fi
 
+	use musl && MAKE_MUSL="LIBC_MUSL=1"
+	use libbacktrace && MAKE_LIBBACKTRACE="LIBBACKTRACE=1"
+	use debug_symbols && MAKE_DEBUG_SYMBOLS="ENABLE_DEBUG_SYMBOLS=1"
+
 	# A native build of dmd is used to compile the runtimes for both x86 and amd64
 	# We cannot use multilib-minimal yet, as we have to be sure dmd for amd64
 	# always gets build first.
@@ -141,10 +147,10 @@ dmd_src_compile() {
 
 	compile_libraries() {
 		einfo 'Building druntime...'
-		emake -C src/druntime -f posix.mak DMD=../dmd/dmd MODEL=${MODEL} MANIFEST= ${PIC}
+		emake -C src/druntime -f posix.mak DMD=../dmd/dmd MODEL=${MODEL} MANIFEST= ${PIC} ${MAKE_MUSL} ${MAKE_LIBBACKTRACE} ${MAKE_DEBUG_SYMBOLS}
 
 		einfo 'Building Phobos 2...'
-		emake -C src/phobos -f posix.mak DMD=../dmd/dmd MODEL=${MODEL} VERSION=../VERSION CUSTOM_DRUNTIME=1 ${PIC}
+		emake -C src/phobos -f posix.mak DMD=../dmd/dmd MODEL=${MODEL} VERSION=../VERSION CUSTOM_DRUNTIME=1 ${PIC} ${MAKE_MUSL} ${MAKE_LIBBACKTRACE} ${MAKE_DEBUG_SYMBOLS}
 	}
 
 	dmd_foreach_abi compile_libraries
@@ -154,8 +160,13 @@ dmd_src_compile() {
 }
 
 dmd_src_test() {
+	use musl && DFLAG_MUSL="-version=LIBC_MUSL" # heresy. but it works.
+	use libbacktrace && DFLAG_LIBBACKTRACE="-version=USE_LIBBACKTRACE -L-lbacktrace"
+
 	test_hello_world() {
-		src/dmd/dmd -m${MODEL} -Isrc/phobos -Isrc/druntime/import -L-Lsrc/phobos/generated/linux/release/${MODEL} samples/d/hello.d || die "Failed to build hello.d (${MODEL}-bit)"
+		src/dmd/dmd -m${MODEL} -Isrc/phobos -Isrc/druntime/import \
+			-L-Lsrc/phobos/generated/linux/release/${MODEL} samples/d/hello.d \
+			${DFLAG_MUSL} ${DFLAG_LIBBACKTRACE} || die "Failed to build hello.d (${MODEL}-bit)"
 		./hello ${MODEL}-bit || die "Failed to run test sample (${MODEL}-bit)"
 		rm hello.o hello || die "Could not remove temporary files"
 	}
@@ -165,6 +176,9 @@ dmd_src_test() {
 
 dmd_src_install() {
 	local MODEL=$(dmd_abi_to_model)
+	use musl && DFLAG_MUSL="-version=LIBC_MUSL" # heresy. but it works.
+	use libbacktrace && DFLAG_LIBBACKTRACE="-version=USE_LIBBACKTRACE -L-lbacktrace"
+	use debug_symbols && DFLAG_DEBUG_SYMBOLS="-g"
 
 	# Licenses
 	insinto ${PREFIX}
@@ -178,19 +192,19 @@ dmd_src_install() {
 [Environment]
 DFLAGS=-I${IMPORT_DIR} -L--export-dynamic -defaultlib=phobos2
 [Environment32]
-DFLAGS=%DFLAGS% -L-L/${PREFIX}/lib32 -L-rpath -L/${PREFIX}/lib32 -fPIC
+DFLAGS=%DFLAGS% -L-L/${PREFIX}/lib32 -L-rpath -L/${PREFIX}/lib32 -fPIC ${DFLAG_MUSL} ${DFLAG_LIBBACKTRACE} ${DFLAG_DEBUG_SYMBOLS}
 [Environment64]
-DFLAGS=%DFLAGS% -L-L/${PREFIX}/lib64 -L-rpath -L/${PREFIX}/lib64 -fPIC
+DFLAGS=%DFLAGS% -L-L/${PREFIX}/lib64 -L-rpath -L/${PREFIX}/lib64 -fPIC ${DFLAG_MUSL} ${DFLAG_LIBBACKTRACE} ${DFLAG_DEBUG_SYMBOLS}
 EOF
 	elif [ "${ABI:0:5}" = "amd64" ]; then
 		cat > linux/bin${MODEL}/dmd.conf << EOF
 [Environment]
-DFLAGS=-I${IMPORT_DIR} -L--export-dynamic -defaultlib=phobos2 -L-L/${PREFIX}/lib64 -L-rpath -L/${PREFIX}/lib64 -fPIC
+DFLAGS=-I${IMPORT_DIR} -L--export-dynamic -defaultlib=phobos2 -L-L/${PREFIX}/lib64 -L-rpath -L/${PREFIX}/lib64 -fPIC ${DFLAG_LIBBACKTRACE} ${DFLAG_DEBUG_SYMBOLS}
 EOF
 	else
 		cat > linux/bin${MODEL}/dmd.conf << EOF
 [Environment]
-DFLAGS=-I${IMPORT_DIR} -L--export-dynamic -defaultlib=phobos2 -L-L/${PREFIX}/lib -L-rpath -L/${PREFIX}/lib -fPIC
+DFLAGS=-I${IMPORT_DIR} -L--export-dynamic -defaultlib=phobos2 -L-L/${PREFIX}/lib -L-rpath -L/${PREFIX}/lib -fPIC ${DFLAG_LIBBACKTRACE} ${DFLAG_DEBUG_SYMBOLS}
 EOF
 	fi
 	insinto ${PREFIX}/bin
