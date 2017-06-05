@@ -92,7 +92,8 @@ fi
 
 export GCC_FILESDIR=${GCC_FILESDIR:-${FILESDIR}}
 
-PREFIX=${TOOLCHAIN_PREFIX:-${EPREFIX}/usr}
+CHAD_OFFSET=${CHAD_OFFSET:-""}
+PREFIX=${TOOLCHAIN_PREFIX:-${EPREFIX}/${CHAD_OFFSET}/usr}
 
 if tc_version_is_at_least 3.4.0 ; then
 	LIBPATH=${TOOLCHAIN_LIBPATH:-${PREFIX}/lib/gcc/${CTARGET}/${GCC_CONFIG_VER}}
@@ -1693,7 +1694,7 @@ toolchain_src_install() {
 	cd "${D}"${BINPATH}
 	# Ugh: we really need to auto-detect this list.
 	#      It's constantly out of date.
-	for x in cpp gcc g++ c++ gcov g77 gcj gcjh gfortran gccgo ; do
+	for x in cpp gcc g++ c++ gcov g77 gcj gcjh gfortran gccgo gdc ; do
 		# For some reason, g77 gets made instead of ${CTARGET}-g77...
 		# this should take care of that
 		if [[ -f ${x} ]] ; then
@@ -1707,11 +1708,11 @@ toolchain_src_install() {
 			if ! is_crosscompile ; then
 				ln -sf ${CTARGET}-${x} ${x}
 				dosym ${BINPATH#${EPREFIX}}/${CTARGET}-${x} \
-					/usr/bin/${x}-${GCC_CONFIG_VER}
+					${CHAD_OFFSET}/usr/bin/${x}-${GCC_CONFIG_VER}
 			fi
 			# Create versioned symlinks
 			dosym ${BINPATH#${EPREFIX}}/${CTARGET}-${x} \
-				/usr/bin/${CTARGET}-${x}-${GCC_CONFIG_VER}
+				${CHAD_OFFSET}/usr/bin/${CTARGET}-${x}-${GCC_CONFIG_VER}
 		fi
 
 		if [[ -f ${CTARGET}-${x}-${GCC_CONFIG_VER} ]] ; then
@@ -1944,7 +1945,7 @@ create_gcc_env_entry() {
 	local gcc_envd_base="/etc/env.d/gcc/${CTARGET}-${GCC_CONFIG_VER}"
 
 	local gcc_specs_file
-	local gcc_envd_file="${ED}${gcc_envd_base}"
+	local gcc_envd_file="${ED}/${CHAD_OFFSET}${gcc_envd_base}"
 	if [[ -z $1 ]] ; then
 		# I'm leaving the following commented out to remind me that it
 		# was an insanely -bad- idea. Stuff broke. GCC_SPECS isnt unset

@@ -3,7 +3,9 @@
 
 EAPI="5"
 
-EPREFIX="/usr/local/share/dcompilers/gdc"
+#EPREFIX="/usr/local/share/dcompilers/gdc"
+#ED=${D%/}${EPREFIX}
+CHAD_OFFSET="/usr/local/share/dcompilers/gdc"
 
 EGIT_REPO_URI="git://github.com/D-Programming-GDC/GDC.git"
 EGIT_COMMIT="v2.068.2_gcc4.9"
@@ -37,6 +39,8 @@ inherit eutils toolchain
 
 KEYWORDS="amd64 arm ~mips x86"
 
+REQUIRED_USE="
+	elibc_musl? ( !sanitize )"
 RDEPEND=""
 DEPEND="${RDEPEND}
 	elibc_glibc? ( >=sys-libs/glibc-2.8 )
@@ -75,10 +79,16 @@ src_prepare() {
 	#Use -r1 for newer piepatchet that use DRIVER_SELF_SPECS for the hardened specs.
 	[[ ${CHOST} == ${CTARGET} ]] && epatch "${FILESDIR}"/gcc-spec-env-r1.patch
 
-	if use d ; then                                                               
-		# Get GDC sources into the tree.                                          
-		git-2_src_unpack                                                        
-		cd ../dev || die "Changing into Git checkout directory failed."         
-		./setup-gcc.sh ../gcc-${GCC_PV} || die "Could not setup GDC."           
+	if use d ; then
+		# Get GDC sources into the tree.
+		git-2_src_unpack
+		cd ../dev || die "Changing into Git checkout directory failed."
+		epatch "${FILESDIR}"/${PN}-4.9.4-d-frontend-fpic.patch
+		epatch "${FILESDIR}"/${PN}-4.9.4-libdruntime-qsort_r.patch
+		./setup-gcc.sh ../gcc-${GCC_PV} || die "Could not setup GDC."
 	fi
+}
+
+src_install() {
+	toolchain_src_install
 }
