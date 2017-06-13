@@ -5,7 +5,7 @@ EAPI="5"
 
 #EPREFIX="/usr/local/share/dcompilers/gdc"
 #ED=${D%/}${EPREFIX}
-CHAD_OFFSET="/usr/local/share/dcompilers/gdc"
+PKG_OFFSET="/usr/local/share/dcompilers/gdc"
 
 EGIT_REPO_URI="git://github.com/D-Programming-GDC/GDC.git"
 EGIT_COMMIT="v2.068.2_gcc4.9"

@@ -92,8 +92,8 @@ fi
 
 export GCC_FILESDIR=${GCC_FILESDIR:-${FILESDIR}}
 
-CHAD_OFFSET=${CHAD_OFFSET:-""}
-PREFIX=${TOOLCHAIN_PREFIX:-${EPREFIX}/${CHAD_OFFSET}/usr}
+PKG_OFFSET=${PKG_OFFSET:-""}
+PREFIX=${TOOLCHAIN_PREFIX:-${EPREFIX}/${PKG_OFFSET}/usr}
 
 if tc_version_is_at_least 3.4.0 ; then
 	LIBPATH=${TOOLCHAIN_LIBPATH:-${PREFIX}/lib/gcc/${CTARGET}/${GCC_CONFIG_VER}}
@@ -1690,7 +1690,7 @@ toolchain_src_install() {
 	# can nuke multiple versions of gcc
 	gcc_slot_java
 
-	dodir /${CHAD_OFFSET}/usr/bin
+	dodir /${PKG_OFFSET}/usr/bin
 	cd "${D}"${BINPATH}
 	# Ugh: we really need to auto-detect this list.
 	#      It's constantly out of date.
@@ -1708,10 +1708,10 @@ toolchain_src_install() {
 			if ! is_crosscompile ; then
 				ln -sf ${CTARGET}-${x} ${x}
 				dosym ${BINPATH#${EPREFIX}}/${CTARGET}-${x} \
-					/${CHAD_OFFSET}/usr/bin/${x}-${GCC_CONFIG_VER}
-				if [[ -n ${CHAD_OFFSET} ]] ; then
+					/${PKG_OFFSET}/usr/bin/${x}-${GCC_CONFIG_VER}
+				if [[ -n ${PKG_OFFSET} ]] ; then
 					dosym ${BINPATH#${EPREFIX}}/${CTARGET}-${x} \
-						/${CHAD_OFFSET}/usr/bin/${x}
+						/${PKG_OFFSET}/usr/bin/${x}
 					if [ "${x}" == "gdc" ] ; then
 						dosym ${BINPATH#${EPREFIX}}/${CTARGET}-${x} \
 							/usr/bin/gdc
@@ -1720,7 +1720,7 @@ toolchain_src_install() {
 			fi
 			# Create versioned symlinks
 			dosym ${BINPATH#${EPREFIX}}/${CTARGET}-${x} \
-				/${CHAD_OFFSET}/usr/bin/${CTARGET}-${x}-${GCC_CONFIG_VER}
+				/${PKG_OFFSET}/usr/bin/${CTARGET}-${x}-${GCC_CONFIG_VER}
 		fi
 
 		if [[ -f ${CTARGET}-${x}-${GCC_CONFIG_VER} ]] ; then
@@ -1953,7 +1953,7 @@ create_gcc_env_entry() {
 	local gcc_envd_base="/etc/env.d/gcc/${CTARGET}-${GCC_CONFIG_VER}"
 
 	local gcc_specs_file
-	local gcc_envd_file="${ED}/${CHAD_OFFSET}${gcc_envd_base}"
+	local gcc_envd_file="${ED}/${PKG_OFFSET}${gcc_envd_base}"
 	if [[ -z $1 ]] ; then
 		# I'm leaving the following commented out to remind me that it
 		# was an insanely -bad- idea. Stuff broke. GCC_SPECS isnt unset
