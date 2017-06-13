@@ -1690,7 +1690,7 @@ toolchain_src_install() {
 	# can nuke multiple versions of gcc
 	gcc_slot_java
 
-	dodir /usr/bin
+	dodir /${CHAD_OFFSET}/usr/bin
 	cd "${D}"${BINPATH}
 	# Ugh: we really need to auto-detect this list.
 	#      It's constantly out of date.
@@ -1708,11 +1708,19 @@ toolchain_src_install() {
 			if ! is_crosscompile ; then
 				ln -sf ${CTARGET}-${x} ${x}
 				dosym ${BINPATH#${EPREFIX}}/${CTARGET}-${x} \
-					${CHAD_OFFSET}/usr/bin/${x}-${GCC_CONFIG_VER}
+					/${CHAD_OFFSET}/usr/bin/${x}-${GCC_CONFIG_VER}
+				if [[ -n ${CHAD_OFFSET} ]] ; then
+					dosym ${BINPATH#${EPREFIX}}/${CTARGET}-${x} \
+						/${CHAD_OFFSET}/usr/bin/${x}
+					if [ "${x}" == "gdc" ] ; then
+						dosym ${BINPATH#${EPREFIX}}/${CTARGET}-${x} \
+							/usr/bin/gdc
+					fi
+				fi
 			fi
 			# Create versioned symlinks
 			dosym ${BINPATH#${EPREFIX}}/${CTARGET}-${x} \
-				${CHAD_OFFSET}/usr/bin/${CTARGET}-${x}-${GCC_CONFIG_VER}
+				/${CHAD_OFFSET}/usr/bin/${CTARGET}-${x}-${GCC_CONFIG_VER}
 		fi
 
 		if [[ -f ${CTARGET}-${x}-${GCC_CONFIG_VER} ]] ; then
