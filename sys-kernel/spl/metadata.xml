@@ -5,9 +5,10 @@
 		<email>ryao@gentoo.org</email>
 		<name>Richard Yao</name>
 	</maintainer>
-	<use>
-		<flag name="debug-log">Enable additional diagnostics</flag>
-	</use>
+	<maintainer type="person">
+		<email>fearedbliss@gentoo.org</email>
+		<name>Jonathan Vasquez</name>
+	</maintainer>
 	<upstream>
 		<remote-id type="github">zfsonlinux/spl</remote-id>
 	</upstream>
