@@ -386,6 +386,14 @@ __dlang_filter_compilers() {
 		__dlang_compiler_masked_archs_for_version_range "$iuse" "$depend" "$mapping" "$1" "$2"
 	done
 
+	# GDC (doesn't support sub-slots, to stay compatible with upstream GCC)
+	for dc_version in "${!__dlang_gdc_musl_frontend[@]}"; do
+		mapping="${__dlang_gdc_musl_frontend[${dc_version}]}"
+		iuse=gdc_musl-$(replace_all_version_separators _ $dc_version)
+		depend="=sys-devel/gdc-${dc_version}*[d]"
+		__dlang_compiler_masked_archs_for_version_range "$iuse" "$depend" "$mapping" "$1" "$2"
+	done
+
 	# filter for LDC2
 	for dc_version in "${!__dlang_ldc2_frontend[@]}"; do
 		mapping="${__dlang_ldc2_frontend[${dc_version}]}"
@@ -465,12 +473,16 @@ __dlang_phase_wrapper() {
 
 __dlang_compiler_to_dlang_version() {
 	local mapping
+	einfo "DC == '$1', VER == '$2'" 
 	case "$1" in
 		"dmd")
 			mapping="$2"
 		;;
 		"gdc")
 			mapping=`echo ${__dlang_gdc_frontend[$2]} | cut -f 1 -d " "`
+		;;
+		"gdc.musl" | "gdc_musl")
+			mapping=`echo ${__dlang_gdc_musl_frontend[$2]} | cut -f 1 -d " "`
 		;;
 		"ldc2")
 			mapping=`echo ${__dlang_ldc2_frontend[$2]} | cut -f 1 -d " "`
@@ -490,7 +502,7 @@ __dlang_build_configurations() {
 	fi
 	for use_flag in $use_flags; do
 		case ${use_flag} in
-			dmd-* | gdc-* | ldc-* | ldc2-*)
+			dmd-* | gdc-* | gdc_musl-* | ldc-* | ldc2-*)
 				if [[ "${DLANG_PACKAGE_TYPE}" == "single" ]]; then
 					variants="default-${use_flag//_/.}"
 				else
