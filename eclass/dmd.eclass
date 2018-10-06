@@ -56,7 +56,7 @@ fi
 SONAME="${SONAME-libphobos2.so.0.${MINOR}.${PATCH}}"
 SONAME_SYM="${SONAME%.*}"
 
-IUSE="doc examples static-libs tools"
+IUSE="doc examples libbacktrace musl static-libs tools"
 
 # Self-hosting versions of DMD need a host compiler.
 if dmd_ge 2.068; then
