@@ -29,10 +29,10 @@ index 7f35963..15f03e7 100644
  [Environment64]
 -DFLAGS=-I%@P%/../../src/phobos -I%@P%/../../src/druntime/import -L-L%@P%/../lib64 -L--export-dynamic
 +DFLAGS=-I%@P%/../../src/phobos -I%@P%/../../src/druntime/import -L-L%@P%/../lib64 -L--export-dynamic -fPIC
-diff --git dmd2/src/dmd/posix.mak dmd2/src/dmd/posix.mak
+diff --git dmd2/dmd/src/posix.mak dmd2/dmd/src/posix.mak
 index e022784..cf13197 100644
---- dmd2/src/dmd/posix.mak
-+++ dmd2/src/dmd/posix.mak
+--- dmd2/dmd/src/posix.mak
++++ dmd2/dmd/src/posix.mak
 @@ -99,6 +99,7 @@ MMD=-MMD -MF $(basename $@).deps
  CFLAGS := $(WARNINGS) \
  	-fno-exceptions -fno-rtti \
