@@ -12,7 +12,6 @@ dlang-compilers_declare_versions() {
 	declare -gA __dlang_gdc_frontend
 	declare -gA __dlang_gdc_musl_frontend
 	declare -gA __dlang_ldc2_frontend
-	declare -g __dlang_archs="alpha amd64 amd64-fbsd amd64-linux arm arm-linux arm64 hppa ia64 m68k m68k-mint mips nios2 ppc ppc64 ppc64-linux ppc-aix ppc-macos riscv s390 sh sparc sparc64-solaris sparc-fbsd sparc-solaris x64-cygwin x64-macos x64-solaris x86 x86-cygwin x86-fbsd x86-linux x86-macos x86-solaris x86-winnt"
 
 	# DMD
 	__dlang_dmd_frontend=(
@@ -26,13 +25,19 @@ dlang-compilers_declare_versions() {
 		["2.070"]="2.070 x86 amd64"
 		["2.071"]="2.071 x86 amd64"
 		["2.072"]="2.072 x86 amd64"
-		["2.073"]="2.073 ~x86 ~amd64"
+		["2.073"]="2.073 x86 amd64"
+		["2.074"]="2.074 x86 amd64"
+		["2.075"]="2.075 x86 amd64"
+		["2.076"]="2.076 x86 amd64"
+		["2.077"]="2.077 x86 amd64"
+		["2.078"]="2.078 x86 amd64"
+		["2.079"]="2.079 x86 amd64"
+		["2.080"]="2.080 x86 amd64"
 	)
 
 	# GDC (alpha, hppa, sparc: masked "d" USE-flag)
 	__dlang_gdc_frontend=(
-		["4.8.5"]="2.066 x86 amd64 arm"
-		["4.9.4"]="2.068 ~amd64 ~arm arm64 ~ia64 m68k ~mips ~ppc ~ppc64 s390 sh ~x86 ~amd64-fbsd ~x86-fbsd"
+		["6.4.0"]="2.068 amd64 arm hppa ia64 m68k ppc ppc64 s390 sh x86 ~amd64-fbsd ~x86-fbsd"
 	)
 
 	# GDC (alpha, hppa, sparc: masked "d" USE-flag)
@@ -42,12 +47,16 @@ dlang-compilers_declare_versions() {
 
 	# LDC
 	__dlang_ldc2_frontend=(
-		["0.14"]="2.065 ~x86 ~amd64"
-		["0.15"]="2.066 ~x86 ~amd64"
-		["0.16"]="2.067 x86 amd64"
 		["0.17"]="2.068 x86 amd64 ~arm"
-		["1.0"]="2.070 x86 amd64 ~arm"
-		["1.1"]="2.071 ~x86 ~amd64 ~arm"
+		["1.1"]="2.071 x86 amd64 ~arm"
+		["1.2"]="2.072 x86 amd64 ~arm"
+		["1.3"]="2.073 x86 amd64 ~arm"
+		["1.4"]="2.074 x86 amd64 ~arm"
+		["1.5"]="2.075 x86 amd64 ~arm"
+		["1.6"]="2.076 x86 amd64 ~arm"
+		["1.7"]="2.077 x86 amd64 ~arm"
+		["1.8"]="2.078 x86 amd64 ~arm"
+		["1.9"]="2.079 x86 amd64 ~arm"
 	)
 }
 
