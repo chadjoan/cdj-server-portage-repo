@@ -81,8 +81,10 @@ COMMON_DEPEND="
 DEPEND="
 	${COMMON_DEPEND}
 	app-arch/unzip
-	musl? ( dev-lang/dmd[libbacktrace] )
 	libbacktrace? ( sys-libs/libbacktrace )
+	"
+REQUIRED_USE="
+	musl? ( libbacktrace )
 	"
 RDEPEND="
 	${COMMON_DEPEND}
