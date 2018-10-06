@@ -114,15 +114,15 @@ dmd_src_prepare() {
 
 	# Ebuild patches
 
-	# NOTE: Calling "default" is not enough for the musl patches. Maybe the
-	# patch filenames are wrong or something. I don't want to spend time
-	# figuring it out when this code will work for now.
-	if [ -n "${PATCHES}" ]; then
-		for p in "${PATCHES[@]}"; do
-			eapply "${FILESDIR}/${p}"
-		done
-	fi
-	#default
+	## NOTE: Calling "default" is not enough for the musl patches. Maybe the
+	## patch filenames are wrong or something. I don't want to spend time
+	## figuring it out when this code will work for now.
+	#if [ -n "${PATCHES}" ]; then
+	#	for p in "${PATCHES[@]}"; do
+	#		eapply "${FILESDIR}/${p}"
+	#	done
+	#fi
+	default
 
 	# Run other preparations
 	declare -f dmd_src_prepare_extra > /dev/null && dmd_src_prepare_extra
@@ -140,7 +140,6 @@ dmd_src_compile() {
 
 	use musl && MAKE_MUSL="LIBC_MUSL=1"
 	use libbacktrace && MAKE_LIBBACKTRACE="LIBBACKTRACE=1"
-	use debug_symbols && MAKE_DEBUG_SYMBOLS="ENABLE_DEBUG_SYMBOLS=1"
 
 	# A native build of dmd is used to compile the runtimes for both x86 and amd64
 	# We cannot use multilib-minimal yet, as we have to be sure dmd for amd64

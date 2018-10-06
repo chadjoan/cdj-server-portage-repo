@@ -15,6 +15,6 @@ ARCHIVE="linux.zip"
 
 #echo $PORTAGE_ECLASS_LOCATIONS
 
-PATCHES=( "2.067.1-r2-musl-amd64.patch" "2.067.1-r2-musl-fpic.patch" )
+PATCHES=( "${FILESDIR}/2.067-musl-amd64.patch" "${FILESDIR}/2.067-musl-fpic.patch" )
 
 inherit dmd eutils
