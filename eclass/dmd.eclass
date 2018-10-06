@@ -56,7 +56,7 @@ fi
 SONAME="${SONAME-libphobos2.so.0.${MINOR}.${PATCH}}"
 SONAME_SYM="${SONAME%.*}"
 
-IUSE="doc examples libbacktrace musl static-libs tools"
+IUSE="debug_symbols doc examples libbacktrace musl static-libs tools"
 
 # Self-hosting versions of DMD need a host compiler.
 if dmd_ge 2.068; then
@@ -195,6 +195,7 @@ dmd_src_compile() {
 dmd_src_test() {
 	use musl && DFLAG_MUSL="-version=LIBC_MUSL" # heresy. but it works.
 	use libbacktrace && DFLAG_LIBBACKTRACE="-version=USE_LIBBACKTRACE -L-lbacktrace"
+	use debug_symbols && MAKE_DEBUG_SYMBOLS="ENABLE_DEBUG_SYMBOLS=1"
 
 	test_hello_world() {
 		"$(dmd_gen_exe_dir)/dmd" -m${MODEL} -fPIC -Iphobos -Idruntime/import -L-Lphobos/generated/linux/release/${MODEL} samples/d/hello.d \
