@@ -11,7 +11,10 @@
 # DLANG_PACKAGE_TYPE determines whether the current ebuild can be compiled for
 # multiple Dlang compilers (i.e. is a library to be installed for different
 # versions of dmd, gdc or ldc2) or a single compiler (i.e. is an application).
-# For a single compiler use "single", for multiple compilers use "multi".
+# "single" - An application is built and the package will be built using one compiler.
+# "multi" - A library is built and multiple compiler versions and vendors can be selected.
+# "dmd" - Special case for dmd, which is like "single", but picking no compiler USE flag
+#         is allowed and results in a self-hosting dmd.
 # DLANG_USE_COMPILER, if set, inhibits the generation of IUSE, REQUIRED_USE, DEPEND
 # and RDEPEND for Dlang compilers based on above variables. The ebuild is responsible
 # for providing them as required by the function it uses from this eclass.
@@ -23,7 +26,7 @@ if has ${EAPI:-0} 0 1 2 3 4 5; then
 	die "EAPI must be >= 6 for dlang packages."
 fi
 
-inherit flag-o-matic versionator dlang-compilers
+inherit flag-o-matic eapi7-ver dlang-compilers
 if [[ "${DLANG_PACKAGE_TYPE}" == "multi" ]]; then
 	# We handle a multi instance package.
 	inherit multilib-minimal
@@ -33,9 +36,7 @@ EXPORT_FUNCTIONS src_prepare src_configure src_compile src_test src_install
 
 
 # Definition of know compilers and supported front-end versions from dlang-compilers.eclass
-
 dlang-compilers_declare_versions
-
 
 # @FUNCTION: dlang_foreach_config
 # @DESCRIPTION:
@@ -102,11 +103,11 @@ dlang_single_config() {
 
 dlang_has_shared_lib_support() {
 	if [[ "${DLANG_VENDOR}" == "DigitalMars" ]]; then
-		[[ $(get_major_version ${DLANG_VERSION}) -eq 2 ]] && [[ $((10#$(get_after_major_version ${DLANG_VERSION}))) -ge 63 ]]
+		[[ $(ver_cut 1 ${DLANG_VERSION}) -eq 2 ]] && [[ $((10#$(ver_cut 2 ${DLANG_VERSION}))) -ge 63 ]]
 	elif [[ "${DLANG_VENDOR}" == "GNU" ]]; then
-		[[ $(get_major_version ${DLANG_VERSION}) -eq 2 ]] && [[ $((10#$(get_after_major_version ${DLANG_VERSION}))) -ge 68 ]]
+		true
 	elif [[ "${DLANG_VENDOR}" == "LDC" ]]; then
-		return 1
+		[[ $(ver_cut 1 ${DLANG_VERSION}) -eq 2 ]] && [[ $((10#$(ver_cut 2 ${DLANG_VERSION}))) -ge 73 ]]
 	else
 		die "Could not detect D compiler vendor!"
 	fi
@@ -160,17 +161,37 @@ dlang_exec() {
 # compiler:
 # versions - a list of versions to activate during compilation
 # imports - a list of import paths
+# string_imports - a list of string import paths
 #
 # Aditionally, if the ebuild offers the "debug" use flag, we will automatically
 # raise the debug level to 1 during compilation.
 dlang_compile_bin() {
-	[[ "${DLANG_PACKAGE_TYPE}" == "single" ]] || die "Currently ${FUNCTION} only works with DLANG_PACKAGE_TYPE=\"single\"."
+	[[ "${DLANG_PACKAGE_TYPE}" == "multi" ]] && die "${FUNCTION} does not work with DLANG_PACKAGE_TYPE=\"multi\" currently."
 
 	local binname="${1}"
 	local sources="${@:2}"
 
 	dlang_exec ${DC} ${DCFLAGS} ${sources} $(__dlang_additional_flags) \
 		${LDFLAGS} ${DLANG_OUTPUT_FLAG}${binname}
+}
+
+# @FUNCTION: dlang_compile_lib_a
+# @DESCRIPTION:
+# Compiles a D static library. The first argument is the output file name, the
+# other arguments are source files. Additional variables and the
+# "debug" use flag will be handled as described in dlang_compile_bin().
+dlang_compile_lib_a() {
+	local libname="${1}"
+	local sources="${@:2}"
+
+	if [[ "${DLANG_VENDOR}" == "GNU" ]]; then
+		die "Static libraries for GDC is not supported yet."
+	fi
+	if [[ "${DLANG_PACKAGE_TYPE}" == "multi" ]]; then
+		DCFLAGS="${DCFLAGS} -m${MODEL}"
+	fi
+	dlang_exec ${DC} ${DCFLAGS} ${sources} $(__dlang_additional_flags) \
+		${LDFLAGS} ${DLANG_A_FLAGS} ${DLANG_OUTPUT_FLAG}${libname}
 }
 
 # @FUNCTION: dlang_compile_lib_so
@@ -198,11 +219,14 @@ dlang_convert_ldflags() {
 		# gc-sections breaks executables for some versions of D
 		# It works with the gold linker on the other hand
 		# See: https://issues.dlang.org/show_bug.cgi?id=879
-		if ! version_is_at_least 2.072 $DLANG_VERSION; then
+		[[ "${DLANG_PACKAGE_TYPE}" = "dmd" ]] && local dlang_version=$SLOT || local dlang_version=$DLANG_VERSION
+		if ver_test $dlang_version -lt 2.072; then
 			if ! ld -v | grep -q "^GNU gold"; then
 				filter-ldflags {-L,-Xlinker,-Wl,}--gc-sections
 			fi
 		fi
+		# Filter ld.gold ICF flag. (https://issues.dlang.org/show_bug.cgi?id=17515)
+		filter-ldflags {-L,-Xlinker,-Wl,}--icf={none,all,safe}
 	fi
 
 	if [[ "${DLANG_VENDOR}" == "DigitalMars" ]] || [[ "${DLANG_VENDOR}" == "GNU" ]]; then
@@ -261,13 +285,13 @@ dlang_system_imports() {
 # high as the argument.
 dlang_phobos_level() {
 	if [ -z "$DLANG_VERSION" ]; then
-		[ "$DLANG_PACKAGE_TYPE" == "single" ] || die "'dlang_phobos_level' needs 'DLANG_PACKAGE_TYPE == single' when called outside of compiles."
+		[ "$DLANG_PACKAGE_TYPE" != "multi" ] || die "'dlang_phobos_level' needs 'DLANG_PACKAGE_TYPE != multi' when called outside of compiles."
 		local config=`__dlang_build_configurations`
 		local dc="$(echo ${config} | cut -d- -f2)"
 		local dc_version="$(echo ${config} | cut -d- -f3)"
 		local DLANG_VERSION="$(__dlang_compiler_to_dlang_version ${dc} ${dc_version})"
 	fi
-	version_is_at_least "$1" "$DLANG_VERSION"
+	ver_test "$DLANG_VERSION" -ge "$1"
 }
 
 ### Non-public helper functions ###
@@ -309,39 +333,33 @@ __dlang_compiler_masked_archs_for_version_range() {
 		[[ $((10#${dlang_version#*.})) -gt $((10#${5#*.})) ]] && return 1
 	fi
 
-	# If we run portage, check if our list of known architectures is
-	# still up to date.
-	if [ -n "$USE_EXPAND_VALUES_ARCH" ]; then
-		if [ "$USE_EXPAND_VALUES_ARCH" != "$__dlang_archs" ]; then
-			ewarn "Dlang overlay maintenance: __dlang_archs diverged from Portage's USE_EXPAND_VALUES_ARCH"
-		fi
-	fi
-
 	# Check the stability requirements
-	local ebuild_stab comp_stab have_one=0
-	for arch in $__dlang_archs; do
-		ebuild_stab=0
-		for package_keyword in $KEYWORDS; do
-			if [ "$package_keyword" == "~$arch" ]; then
-				ebuild_stab=1
-			elif [ "$package_keyword" == "$arch" ]; then
-				ebuild_stab=2
+	local ebuild_stab comp_stab=0 have_one=0
+	for package_keyword in $KEYWORDS; do
+		if [ "${package_keyword:0:1}" == "-" ]; then
+			# Skip "-arch" and "-*"
+			continue
+		elif [ "${package_keyword:0:1}" == "~" ]; then
+			ebuild_stab=1
+			arch=${package_keyword:1}
+		else
+			ebuild_stab=2
+			arch=$package_keyword
+		fi
+
+		comp_stab=0
+		for compiler_keyword in $compiler_keywords; do
+			if [ "$compiler_keyword" == "~$arch" ]; then
+				comp_stab=1
+			elif [ "$compiler_keyword" == "$arch" ]; then
+				comp_stab=2
 			fi
 		done
-		if [ $ebuild_stab -gt 0 ]; then
-			comp_stab=0
-			for compiler_keyword in $compiler_keywords; do
-				if [ "$compiler_keyword" == "~$arch" ]; then
-					comp_stab=1
-				elif [ "$compiler_keyword" == "$arch" ]; then
-					comp_stab=2
-				fi
-			done
-			if [ $comp_stab -lt $ebuild_stab ]; then
-				masked_archs+=( $arch )
-			else
-				have_one=1
-			fi
+		if [ $comp_stab -lt $ebuild_stab ]; then
+			masked_archs+=( $arch )
+		fi
+		if [ $comp_stab -gt 0 ]; then
+			have_one=1
 		fi
 	done
 	[ $have_one -eq 0 ] && return 1
@@ -368,7 +386,7 @@ __dlang_filter_compilers() {
 	# filter for DMD (hardcoding support for x86 and amd64 only)
 	for dc_version in "${!__dlang_dmd_frontend[@]}"; do
 		mapping="${__dlang_dmd_frontend[${dc_version}]}"
-		iuse="dmd-$(replace_all_version_separators _ $dc_version)"
+		iuse="dmd-$(ver_rs 1- _ $dc_version)"
 		if [ "${DLANG_PACKAGE_TYPE}" == "multi" ]; then
 			depend="[${MULTILIB_USEDEP}]"
 		else
@@ -381,24 +399,29 @@ __dlang_filter_compilers() {
 	# GDC (doesn't support sub-slots, to stay compatible with upstream GCC)
 	for dc_version in "${!__dlang_gdc_frontend[@]}"; do
 		mapping="${__dlang_gdc_frontend[${dc_version}]}"
-		iuse=gdc-$(replace_all_version_separators _ $dc_version)
-		depend="=sys-devel/gcc-${dc_version}*[d]"
+		iuse=gdc-$(ver_rs 1- _ $dc_version)
+		depend="=sys-devel/gcc-$dc_version*[d]"
 		__dlang_compiler_masked_archs_for_version_range "$iuse" "$depend" "$mapping" "$1" "$2"
 	done
 
 	# GDC (doesn't support sub-slots, to stay compatible with upstream GCC)
 	for dc_version in "${!__dlang_gdc_musl_frontend[@]}"; do
 		mapping="${__dlang_gdc_musl_frontend[${dc_version}]}"
-		iuse=gdc_musl-$(replace_all_version_separators _ $dc_version)
-		depend="=sys-devel/gdc-${dc_version}*[d]"
+		iuse=gdc_musl-$(ver_rs 1- _ $dc_version)
+		depend="=sys-devel/gdc-$dc_version*[d]"
 		__dlang_compiler_masked_archs_for_version_range "$iuse" "$depend" "$mapping" "$1" "$2"
 	done
 
 	# filter for LDC2
 	for dc_version in "${!__dlang_ldc2_frontend[@]}"; do
 		mapping="${__dlang_ldc2_frontend[${dc_version}]}"
-		iuse=ldc2-$(replace_all_version_separators _ $dc_version)
-		depend="dev-lang/ldc2:${dc_version}="
+		iuse=ldc2-$(ver_rs 1- _ $dc_version)
+		if [ "${DLANG_PACKAGE_TYPE}" == "multi" ]; then
+			depend="[${MULTILIB_USEDEP}]"
+		else
+			depend=""
+		fi
+		depend="dev-lang/ldc2:$dc_version=$depend"
 		__dlang_compiler_masked_archs_for_version_range "$iuse" "$depend" "$mapping" "$1" "$2"
 	done
 }
@@ -426,8 +449,8 @@ __dlang_filter_versions() {
 				start=
 				stop="${range#-}"
 			elif [[ "${range}" == *?-?* ]]; then
-				start="$(echo "${range}" | cut -d- -f1)"
-				stop="$(echo "${range}" | cut -d- -f2)"
+				start="${range%-*}"
+				stop="${range#*-}"
 			else
 				start="${range}"
 				stop="${range}"
@@ -440,15 +463,27 @@ __dlang_filter_versions() {
 
 	[ ${#__dlang_compiler_iuse[@]} -eq 0 ] && die "No Dlang compilers found that satisfy this package's version range: $DLANG_VERSION_RANGE"
 
-	IUSE="${__dlang_compiler_iuse[@]}"
-	if [ "${DLANG_PACKAGE_TYPE}" == "single" ]; then
+	if [ "${DLANG_PACKAGE_TYPE}" != "multi" ]; then
 		REQUIRED_USE="^^"
 	else
 		REQUIRED_USE="||"
 	fi
-	REQUIRED_USE="${REQUIRED_USE} ( ${__dlang_compiler_iuse[@]} ) ${__dlang_compiler_iuse_mask[@]}"
 	DEPEND="${__dlang_depends[@]}"
-	RDEPEND="$DEPEND"
+	# DMD, is statically linked and does not have its host compiler as a runtime dependency.
+	if [ "${DLANG_PACKAGE_TYPE}" == "dmd" ]; then
+		IUSE="${__dlang_compiler_iuse[@]} +selfhost"
+		__dlang_compiler_iuse+=( selfhost )
+	else
+		RDEPEND="$DEPEND"
+		IUSE="${__dlang_compiler_iuse[@]}"
+	fi
+	REQUIRED_USE="${REQUIRED_USE} ( ${__dlang_compiler_iuse[@]} ) ${__dlang_compiler_iuse_mask[@]}"
+
+	local -a compiler
+	for compiler in ${__dlang_compiler_iuse[@]}; do
+		DLANG_COMPILER_USE="${DLANG_COMPILER_USE}${compiler}?,"
+	done
+	DLANG_COMPILER_USE="${DLANG_COMPILER_USE:0:-1}"
 }
 
 __dlang_phase_wrapper() {
@@ -460,20 +495,19 @@ __dlang_phase_wrapper() {
 		fi
 	}
 
-	if [[ "${DLANG_PACKAGE_TYPE}" == "single" ]]; then
-		dlang_single_config dlang_phase "${1}"
-	else
+	if [[ "${DLANG_PACKAGE_TYPE}" == "multi" ]]; then
 		dlang_foreach_config dlang_phase "${1}"
 		# Handle any compiler & arch independent installation steps
 		if declare -f d_src_${1}_all >/dev/null ; then
 			d_src_${1}_all
 		fi
+	else
+		dlang_single_config dlang_phase "${1}"
 	fi
 }
 
 __dlang_compiler_to_dlang_version() {
 	local mapping
-	einfo "DC == '$1', VER == '$2'" 
 	case "$1" in
 		"dmd")
 			mapping="$2"
@@ -502,18 +536,23 @@ __dlang_build_configurations() {
 	fi
 	for use_flag in $use_flags; do
 		case ${use_flag} in
-			dmd-* | gdc-* | gdc_musl-* | ldc-* | ldc2-*)
-				if [[ "${DLANG_PACKAGE_TYPE}" == "single" ]]; then
-					variants="default-${use_flag//_/.}"
-				else
+			dmd-* | gdc-* | gdc-musl-* | ldc-* | ldc2-*)
+				if [ "${DLANG_PACKAGE_TYPE}" == "multi" ]; then
 					for abi in $(multilib_get_enabled_abis); do
 						variants="${variants} ${abi}-${use_flag//_/.}"
 					done
+				else
+					variants="default-${use_flag//_/.}"
+				fi
+				;;
+			selfhost)
+				if [ "${DLANG_PACKAGE_TYPE}" == "dmd" ]; then
+					variants="default-dmd-selfhost"
 				fi
 				;;
 		esac
 	done
-	if [[ -z ${variants} ]]; then
+	if [ -z "${variants}" ]; then
 		die "At least one compiler USE-flag must be selected. This should be checked by REQUIRED_USE in this package."
 	fi
 	echo ${variants}
@@ -521,6 +560,10 @@ __dlang_build_configurations() {
 
 __dlang_use_build_vars() {
 	# Now we define some variables and then call the function.
+	# LIBDIR_${ABI} is used by the dolib.* functions, that's why we override it per compiler.
+	# The original value is exported as LIBDIR_HOST.
+	local libdir_var="LIBDIR_${ABI}"
+	export LIBDIR_HOST="${!libdir_var}"
 	export ABI="$(echo ${MULTIBUILD_VARIANT} | cut -d- -f1)"
 	export DC="$(echo ${MULTIBUILD_VARIANT} | cut -d- -f2)"
 	export DC_VERSION="$(echo ${MULTIBUILD_VARIANT} | cut -d- -f3)"
@@ -536,8 +579,10 @@ __dlang_use_build_vars() {
 		*)         export MODEL=64 ;;
 	esac
 	if [[ "${DLANG_VENDOR}" == "DigitalMars" ]]; then
-		export DC="/opt/${DC}-${DC_VERSION}/bin/dmd"
-		export DMD="${DC}"
+		if [ "${DC_VERSION}" != "selfhost" ]; then
+			export DC="/opt/${DC}-${DC_VERSION}/bin/dmd"
+			export DMD="${DC}"
+		fi
 		# "lib" on pure x86, "lib{32,64}" on amd64 (and multilib)
 		if has_multilib_profile || [[ "${MODEL}" == "64" ]]; then
 			export LIBDIR_${ABI}="../opt/dmd-${DC_VERSION}/lib${MODEL}"
@@ -546,12 +591,15 @@ __dlang_use_build_vars() {
 		fi
 		export DCFLAGS="${DMDFLAGS}"
 		export DLANG_LINKER_FLAG="-L"
+		export DLANG_A_FLAGS="-lib -fPIC"
 		export DLANG_SO_FLAGS="-shared -defaultlib=libphobos2.so -fPIC"
 		export DLANG_OUTPUT_FLAG="-of"
 		export DLANG_VERSION_FLAG="-version"
+		export DLANG_UNITTEST_FLAG="-unittest"
 	elif [[ "${DLANG_VENDOR}" == "GNU" ]]; then
+		# Note that ldc2 expects the compiler name to be 'gdmd', not 'x86_64-pc-linux-gnu-gdmd'.
 		export DC="/usr/${CHOST_default}/gcc-bin/${DC_VERSION}/${CHOST_default}-gdc"
-		export DMD="/usr/${CHOST_default}/gcc-bin/${DC_VERSION}/${CHOST_default}-gdmd"
+		export DMD="/usr/${CHOST_default}/gcc-bin/${DC_VERSION}/gdmd"
 		if [[ "${DLANG_PACKAGE_TYPE}" == "multi" ]] && multilib_is_native_abi; then
 			export LIBDIR_${ABI}="lib/gcc/${CHOST_default}/${DC_VERSION}"
 		else
@@ -562,9 +610,10 @@ __dlang_use_build_vars() {
 			export DCFLAGS="${DCFLAGS} -shared-libphobos"
 		fi
 		export DLANG_LINKER_FLAG="-Xlinker "
-		export DLANG_SO_FLAGS="-shared -fPIC"
+		export DLANG_SO_FLAGS="-shared -fpic"
 		export DLANG_OUTPUT_FLAG="-o "
 		export DLANG_VERSION_FLAG="-fversion"
+		export DLANG_UNITTEST_FLAG="-funittest"
 	elif [[ "${DLANG_VENDOR}" == "LDC" ]]; then
 		export LIBDIR_${ABI}="../opt/${DC}-${DC_VERSION}/lib${MODEL}"
 		export DMD="/opt/${DC}-${DC_VERSION}/bin/ldmd2"
@@ -573,9 +622,11 @@ __dlang_use_build_vars() {
 		# we append -op (do not strip paths from source file).
 		export DCFLAGS="${LDCFLAGS} -op"
 		export DLANG_LINKER_FLAG="-L="
+		export DLANG_A_FLAGS="-lib -relocation-model=pic"
 		export DLANG_SO_FLAGS="-shared -relocation-model=pic"
 		export DLANG_OUTPUT_FLAG="-of="
 		export DLANG_VERSION_FLAG="-d-version"
+		export DLANG_UNITTEST_FLAG="-unittest"
 	else
 		die "Could not detect D compiler vendor!"
 	fi
@@ -595,26 +646,23 @@ __dlang_additional_flags() {
 	# https://wiki.gentoo.org/wiki/Project:Quality_Assurance/Backtraces#debug_USE_flag
 	case "${DLANG_VENDOR}" in
 		"DigitalMars")
-			local version_prefix="-version="
 			local import_prefix="-I"
 			local string_import_prefix="-J"
 			local debug_flags="-debug"
 			;;
 		"GNU")
-			local version_prefix="-fversion="
 			local import_prefix="-I"
 			local string_import_prefix="-J"
 			local debug_flags="-fdebug"
 			;;
 		"LDC")
-			local version_prefix="-d-version="
 			local import_prefix="-I="
 			local string_import_prefix="-J="
 			local debug_flags="-d-debug"
 			;;
 	esac
 	echo $(has debug ${IUSE} && use debug && echo ${debug_flags})\
-		$(__dlang_prefix_words $version_prefix $versions)\
+		$(__dlang_prefix_words "${DLANG_VERSION_FLAG}=" $versions)\
 		$(__dlang_prefix_words $import_prefix $imports)\
 		$(__dlang_prefix_words $string_import_prefix $string_imports)\
 		$(__dlang_prefix_words "${DLANG_LINKER_FLAG}-l" $libs)

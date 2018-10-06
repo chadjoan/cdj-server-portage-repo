@@ -17,4 +17,4 @@ ARCHIVE="linux.zip"
 
 PATCHES=( "2.067.1-r2-musl-amd64.patch" "2.067.1-r2-musl-fpic.patch" )
 
-inherit dmd
+inherit dmd eutils
