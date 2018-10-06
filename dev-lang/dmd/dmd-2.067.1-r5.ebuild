@@ -19,7 +19,7 @@ PATCHES=( \
 	"${FILESDIR}/2.067-musl-amd64.patch" \
 	"${FILESDIR}/2.067-musl-fpic.patch" \
 	"${FILESDIR}/2.067-no-narrowing.patch" \
-	"${FILESDIR}/2.068-replace-bits-mathdef-h.patch" \
+	#"${FILESDIR}/2.068-replace-bits-mathdef-h.patch" \
 	"${FILESDIR}/2.073-fix-segv-in-evalu8.patch" )
 
 inherit dmd eutils
