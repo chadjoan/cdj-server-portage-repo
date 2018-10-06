@@ -113,7 +113,16 @@ dmd_src_prepare() {
 	done
 
 	# Ebuild patches
-	default
+
+	# NOTE: Calling "default" is not enough for the musl patches. Maybe the
+	# patch filenames are wrong or something. I don't want to spend time
+	# figuring it out when this code will work for now.
+	if [ -n "${PATCHES}" ]; then
+		for p in "${PATCHES[@]}"; do
+			eapply "${FILESDIR}/${p}"
+		done
+	fi
+	#default
 
 	# Run other preparations
 	declare -f dmd_src_prepare_extra > /dev/null && dmd_src_prepare_extra
