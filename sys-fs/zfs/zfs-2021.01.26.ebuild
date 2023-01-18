@@ -1,10 +1,16 @@
 # Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=7
+EAPI=8
 
+# HACK: I changed PYTHON_COMPAT from ver 7+8+9 to versions 7 through 11.
+# (I am not sure what the intent of PYTHON_COMPAT is, but it causes ebuilds to fail to run at all!
+# If these python versions are a build-time dependency, then surely they should not be specified in
+# the PYTHON_COMPAT variable. I suspect PYTHON_COMPAT is more about `portage` internals and ebuild tools
+# than it is about package dependencies, at least based on portage behavior and the error messages I get.)
+# -- Chad Joan 2023-01-17
 DISTUTILS_OPTIONAL=1
-PYTHON_COMPAT=( python3_{7,8,9} )
+PYTHON_COMPAT=( python3_{7,8,9,10,11} )
 
 inherit autotools bash-completion-r1 distutils-r1 flag-o-matic linux-info pam systemd toolchain-funcs udev usr-ldscript
 
@@ -32,7 +38,7 @@ DEPEND="
 	net-libs/libtirpc[static-libs?]
 	sys-apps/util-linux[static-libs?]
 	sys-libs/zlib[static-libs(+)?]
-	virtual/awk
+	app-alternatives/awk
 	virtual/libudev[static-libs(-)?]
 	libressl? ( dev-libs/libressl:0=[static-libs?] )
 	!libressl? ( dev-libs/openssl:0=[static-libs?] )
@@ -43,7 +49,7 @@ DEPEND="
 	)
 "
 
-BDEPEND="virtual/awk
+BDEPEND="app-alternatives/awk
 	virtual/pkgconfig
 	nls? ( sys-devel/gettext )
 	python? (

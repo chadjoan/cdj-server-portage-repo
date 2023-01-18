@@ -1,0 +1,13 @@
+BDEPEND=>=dev-vcs/git-1.8.2.1[curl]
+DEFINED_PHASES=configure install unpack
+DEPEND=sys-devel/gcc
+DESCRIPTION=Provides runtime non-fatal backtraces. Useful for systems that do not have glibc's backtrace extensions.
+EAPI=8
+HOMEPAGE=https://github.com/ianlancetaylor/libbacktrace
+INHERIT=git-r3
+KEYWORDS=~mips ~sparc ~x86 ~amd64
+LICENSE=BSD
+PROPERTIES=live
+SLOT=0
+_eclasses_=git-r3	2347f8fe2d392b2a091191f94be37e6f
+_md5_=e81d1f4b19c84f47cfbfe98de9cdf552
